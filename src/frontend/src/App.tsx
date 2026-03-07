@@ -184,12 +184,6 @@ function StatusPanel({
 
 const API_BASE_URL = getApiUrl();
 
-function loadBackgroundBlobs(): LazyComponent {
-  return import('./components/layout/BackgroundBlobs.tsx').then((m) => ({
-    default: m.BackgroundBlobs,
-  }));
-}
-
 function loadCursorGlow(): LazyComponent {
   return import('./components/layout/CursorGlow.tsx').then((m) => ({
     default: m.CursorGlow,
@@ -202,7 +196,6 @@ function loadScrollProgress(): LazyComponent {
   }));
 }
 
-const BackgroundBlobs = lazy(loadBackgroundBlobs);
 const CursorGlow = lazy(loadCursorGlow);
 const ScrollProgress = lazy(loadScrollProgress);
 
@@ -622,9 +615,6 @@ export default function App(): ReactElement {
     <>
       <Suspense fallback={null}>
         <CursorGlow />
-      </Suspense>
-      <Suspense fallback={null}>
-        <BackgroundBlobs />
       </Suspense>
       <Suspense fallback={null}>
         <ScrollProgress />

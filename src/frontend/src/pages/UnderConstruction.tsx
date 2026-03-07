@@ -17,7 +17,6 @@
 import { Construction } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { BackgroundBlobs } from '../components/layout/BackgroundBlobs.tsx';
 import { CursorGlow } from '../components/layout/CursorGlow.tsx';
 import { Footer } from '../components/layout/Footer.tsx';
 import { Header } from '../components/layout/Header.tsx';
@@ -38,7 +37,6 @@ export function UnderConstruction({ title }: UnderConstructionProps): ReactEleme
     <>
       <ScrollProgress />
       <CursorGlow />
-      <BackgroundBlobs />
       <Header />
 
       <main className="container mx-auto px-6 max-w-[1240px] relative z-10 min-h-[100dvh] flex flex-col pt-[calc(env(safe-area-inset-top)+6.5rem)] md:pt-32">

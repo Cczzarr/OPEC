@@ -17,7 +17,6 @@
 import clsx from 'clsx';
 import { ArrowUpRight } from 'lucide-react';
 import type { CSSProperties, MouseEvent, ReactElement } from 'react';
-import { BackgroundBlobs } from '../components/layout/BackgroundBlobs.tsx';
 import { CursorGlow } from '../components/layout/CursorGlow.tsx';
 import { Footer } from '../components/layout/Footer.tsx';
 import { Header } from '../components/layout/Header.tsx';
@@ -159,7 +158,6 @@ export function About(): ReactElement {
     <>
       <ScrollProgress />
       <CursorGlow />
-      <BackgroundBlobs />
       <Header />
 
       <main className="container mx-auto px-6 max-w-[1200px] relative z-10 pt-32">

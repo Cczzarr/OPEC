@@ -19,6 +19,7 @@ import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './index.css';
+import { BackgroundBlobs } from './components/layout/BackgroundBlobs.tsx';
 import { ScrollToTop } from './components/layout/ScrollToTop.tsx';
 
 type NoProps = Record<string, never>;
@@ -41,19 +42,28 @@ function loadAbout(): LazyComponent {
   }));
 }
 
+function loadNotFound(): LazyComponent {
+  return import('./pages/NotFound.tsx').then((m) => ({
+    default: m.NotFound,
+  }));
+}
+
 const App = lazy(loadApp);
 const UnderConstruction = lazy(loadUnderConstruction);
 const About = lazy(loadAbout);
+const NotFound = lazy(loadNotFound);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <BackgroundBlobs />
       <ScrollToTop />
       <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/teachers" element={<UnderConstruction title="Преподаватели" />} />
           <Route path="/about" element={<About />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
