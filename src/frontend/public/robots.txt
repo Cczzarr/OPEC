@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://opec.sharkhost.space/sitemap.xml

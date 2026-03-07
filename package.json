@@ -1,0 +1,11 @@
+{
+  "name": "opec-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix src/frontend",
+    "build:frontend": "npm run build --prefix src/frontend",
+    "dev": "npm run dev:frontend",
+    "build": "npm run build:frontend"
+  }
+}
