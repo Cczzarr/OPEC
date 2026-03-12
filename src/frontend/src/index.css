@@ -14,8 +14,6 @@
  * in whole or in part, without explicit permission from the authors is prohibited.
  */
 
-@import './fonts.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,6 +31,16 @@
     scroll-behavior: smooth; 
     overflow-x: hidden;
     scrollbar-gutter: stable both-edges;
+  }
+
+  html,
+  body {
+    scroll-behavior: smooth;
+  }
+
+  html.route-change-no-smooth,
+  body.route-change-no-smooth {
+    scroll-behavior: auto !important;
   }
 
   body {
@@ -337,6 +345,87 @@
     opacity: 0.9;
   }
 
+  .teacher-tile {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    background: theme('colors.md.surface');
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 32px;
+    color: theme('colors.md.on-surface');
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.26);
+    transition:
+      border-radius 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    height: 100%;
+    overflow: visible;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .teacher-tile:hover {
+    background: rgba(43, 41, 48, 0.8);
+    border-color: rgba(208, 188, 255, 0.2);
+    border-radius: 48px 16px 48px 16px;
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .teacher-tile-icon {
+    width: 64px;
+    height: 64px;
+    background: theme('colors.md.secondary-container');
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: theme('colors.md.on-surface');
+    transition:
+      border-radius 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .teacher-tile:hover .teacher-tile-icon {
+    background: theme('colors.md.primary');
+    color: #381E72;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    transform: rotate(-15deg) scale(1.1);
+  }
+
+  .teacher-tile:focus-visible {
+    outline: 2px solid rgba(208, 188, 255, 0.65);
+    outline-offset: 4px;
+  }
+
+  .teacher-tile-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .teacher-tile-text strong {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .teacher-tile-meta {
+    font-size: 1rem;
+    color: theme('colors.md.on-surface-variant');
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   @media (min-width: 768px) {
     .about-tile {
       grid-template-columns: auto 1fr;
@@ -463,6 +552,117 @@
 
     .schedule-card:active {
       transform: scale(0.99) translateY(-1px);
+    }
+
+    .about-tile {
+      transition:
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 260ms ease,
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+      will-change: transform;
+    }
+
+    .about-tile:hover {
+      transform: translateY(-4px) !important;
+      border-radius: 22px 38px 20px 34px / 24px 36px 22px 32px !important;
+    }
+
+    .about-avatar-image {
+      transition:
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    }
+
+    .about-tile:hover .about-avatar-image {
+      border-radius: 40% 60% 58% 42% / 42% 40% 60% 58%;
+      transform: rotate(-6deg) scale(1.02);
+    }
+
+    .about-link {
+      transition:
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 260ms ease,
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+      will-change: transform;
+    }
+
+    .about-link:hover {
+      transform: translateY(-3px) !important;
+      border-radius: 22px 34px 22px 34px !important;
+    }
+
+    .about-link-icon {
+      transition:
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        background-color 260ms ease,
+        color 260ms ease !important;
+    }
+
+    .about-link:hover .about-link-icon {
+      border-radius: 40% 60% 58% 42% / 42% 40% 60% 58%;
+      transform: rotate(-8deg) scale(1.04);
+    }
+
+    .teacher-tile {
+      transition:
+        background-color 260ms ease,
+        border-color 260ms ease,
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 260ms ease !important;
+      will-change: transform;
+    }
+
+    .teacher-tile:hover {
+      transform: translateY(-3px) !important;
+      border-radius: 22px 34px 22px 34px !important;
+    }
+
+    .teacher-tile:active {
+      transform: scale(0.99) translateY(-1px);
+    }
+
+    .teacher-tile-icon {
+      transition:
+        border-radius 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        background-color 260ms ease,
+        color 260ms ease !important;
+    }
+
+    .teacher-tile:hover .teacher-tile-icon {
+      border-radius: 40% 60% 58% 42% / 42% 40% 60% 58%;
+      transform: rotate(-8deg) scale(1.04);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .about-tile {
+      padding: 28px 24px;
+      border-radius: 28px;
+    }
+
+    .about-tile:hover {
+      border-radius: 22px 38px 20px 34px / 24px 36px 22px 32px;
+    }
+
+    .about-link {
+      border-radius: 24px;
+      padding: 18px 20px;
+    }
+
+    .about-link:hover {
+      border-radius: 22px 34px 22px 34px;
+    }
+
+    .teacher-tile {
+      border-radius: 28px;
+      padding: 20px;
+    }
+
+    .teacher-tile:hover {
+      border-radius: 22px 34px 22px 34px;
     }
   }
 }

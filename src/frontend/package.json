@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/prerender-routes.mjs",
+    "build": "tsc -b && vite build && vite build --ssr src/ssg/entry-server.tsx --outDir .ssg-temp && node scripts/prerender-routes.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

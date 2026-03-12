@@ -48,11 +48,38 @@ export interface DayScheduleResponse {
   groups: GroupSchedule[];
 }
 
+export interface TeacherScheduleLesson {
+  group: string;
+  number: number;
+  subject: string;
+  teacher: string;
+  room: string;
+  subgroup?: number | null;
+  is_change: boolean;
+}
+
+export interface TeacherDayScheduleResponse {
+  teacher_query: string;
+  date: string;
+  day_of_week: number;
+  has_data: boolean;
+  lessons: TeacherScheduleLesson[];
+  updated?: {
+    pdf: number;
+    excel: number;
+  };
+}
+
 export interface AvailableDatesResponse {
   dates: string[];
 }
 
 export interface AvailableGroupsResponse {
   groups: string[];
+  total: number;
+}
+
+export interface AvailableTeachersResponse {
+  teachers: string[];
   total: number;
 }

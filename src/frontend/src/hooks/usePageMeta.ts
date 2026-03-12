@@ -15,39 +15,14 @@
  */
 
 import { useEffect } from 'react';
-
-type OpenGraphType = 'website' | 'article';
-
-type PageMeta = {
-  title: string;
-  description: string;
-  path?: string;
-  imagePath?: string;
-  type?: OpenGraphType;
-  robots?: string;
-};
-
-type MetaAttribute = 'name' | 'property';
-
-const DEFAULT_SITE_URL = 'https://opec.sharkhost.space';
-const DEFAULT_IMAGE_PATH = '/tab_logo_1024.png';
-const DEFAULT_OG_TYPE: OpenGraphType = 'website';
-
-function normalizeSiteUrl(value?: string): string {
-  if (!value) {
-    return DEFAULT_SITE_URL;
-  }
-
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-}
-
-function buildAbsoluteUrl(siteUrl: string, urlPath: string): string {
-  if (!urlPath) {
-    return siteUrl;
-  }
-
-  return urlPath.startsWith('/') ? `${siteUrl}${urlPath}` : `${siteUrl}/${urlPath}`;
-}
+import {
+  getResolvedLinkTags,
+  getResolvedMetaTags,
+  resolvePageMeta,
+  type MetaAttribute,
+  type PageMeta,
+} from '../seo/pageMeta.ts';
+import { usePageMetaStore } from '../seo/pageMetaStore.ts';
 
 function getOrCreateMetaTag(attribute: MetaAttribute, value: string): HTMLMetaElement {
   const selector = `meta[${attribute}="${value}"]`;
@@ -67,46 +42,37 @@ function setMetaTag(attribute: MetaAttribute, value: string, content: string): v
   meta.setAttribute('content', content);
 }
 
-function setCanonicalLink(url: string): void {
-  const existingCanonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-  if (existingCanonical) {
-    existingCanonical.setAttribute('href', url);
+function setLinkTag(rel: string, href: string): void {
+  const existingLink = document.head.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+  if (existingLink) {
+    existingLink.setAttribute('href', href);
     return;
   }
 
-  const canonicalLink = document.createElement('link');
-  canonicalLink.setAttribute('rel', 'canonical');
-  canonicalLink.setAttribute('href', url);
-  document.head.append(canonicalLink);
+  const link = document.createElement('link');
+  link.setAttribute('rel', rel);
+  link.setAttribute('href', href);
+  document.head.append(link);
 }
 
-export function usePageMeta({
-  title,
-  description,
-  path,
-  imagePath = DEFAULT_IMAGE_PATH,
-  type = DEFAULT_OG_TYPE,
-  robots,
-}: PageMeta): void {
+export function usePageMeta(pageMeta: PageMeta): void {
+  const pageMetaStore = usePageMetaStore();
+
+  if (pageMetaStore) {
+    pageMetaStore.setMeta(pageMeta);
+  }
+
   useEffect(() => {
-    const siteUrl = normalizeSiteUrl(import.meta.env.VITE_SITE_URL);
-    const currentPath = path || window.location.pathname;
-    const canonicalUrl = buildAbsoluteUrl(siteUrl, currentPath);
-    const imageUrl = buildAbsoluteUrl(siteUrl, imagePath);
+    const resolvedMeta = resolvePageMeta(pageMeta, import.meta.env.VITE_SITE_URL);
 
-    document.title = title;
-    setMetaTag('name', 'description', description);
+    document.title = resolvedMeta.title;
 
-    if (robots) {
-      setMetaTag('name', 'robots', robots);
+    for (const tag of getResolvedMetaTags(resolvedMeta)) {
+      setMetaTag(tag.attribute, tag.key, tag.content);
     }
 
-    setCanonicalLink(canonicalUrl);
-
-    setMetaTag('property', 'og:title', title);
-    setMetaTag('property', 'og:description', description);
-    setMetaTag('property', 'og:type', type);
-    setMetaTag('property', 'og:url', canonicalUrl);
-    setMetaTag('property', 'og:image', imageUrl);
-  }, [description, imagePath, path, robots, title, type]);
+    for (const link of getResolvedLinkTags(resolvedMeta)) {
+      setLinkTag(link.rel, link.href);
+    }
+  }, [pageMeta]);
 }

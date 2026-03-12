@@ -14,11 +14,16 @@
  * in whole or in part, without explicit permission from the authors is prohibited.
  */
 
+import clsx from 'clsx';
 import type { ReactElement } from 'react';
 
-export function Footer(): ReactElement {
+type FooterProps = {
+  className?: string;
+};
+
+export function Footer({ className }: FooterProps): ReactElement {
   return (
-    <footer className="py-20 text-center border-t border-white/5 flex flex-col gap-4">
+    <footer className={clsx('mt-24 border-t border-white/5 pt-20 pb-20 text-center flex flex-col gap-4', className)}>
       <p className="text-md-on-surface-variant/40 font-bold text-sm tracking-widest uppercase">
         Developed with caffeine and cats &copy; 2026 Czar & Shark
       </p>

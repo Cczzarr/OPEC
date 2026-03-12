@@ -24,9 +24,6 @@ type BackgroundBlobsProps = {
 export function BackgroundBlobs({
   isPerformanceMode = false,
 }: BackgroundBlobsProps): ReactElement {
-  const allowWaveAnimation =
-    typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
-
   return (
     <>
       <div className="fixed inset-0 -z-30 overflow-hidden pointer-events-none">
@@ -66,11 +63,10 @@ export function BackgroundBlobs({
         />
         {!isPerformanceMode && (
           <div
-            className="absolute bottom-0 left-0 w-[200%] h-full bg-repeat-x bg-[position:0_bottom] bg-[size:50%_100%] z-20 transform scale-y-[1.4] translate-y-[10px]"
+            className="absolute bottom-0 left-0 w-[200%] h-full bg-repeat-x bg-[position:0_bottom] bg-[size:50%_100%] z-20 transform scale-y-[1.4] translate-y-[10px] [@media(pointer:fine)]:animate-wave-slide [@media(pointer:fine)]:[animation-duration:28s] [@media(pointer:fine)]:[animation-direction:reverse]"
             style={{
               backgroundImage:
                 "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 100' preserveAspectRatio='none'%3E%3Cpath d='M0,50 C200,0 200,100 400,50 C600,0 600,100 800,50 L800,100 L0,100 Z' fill='rgba(239, 184, 200, 0.04)'/%3E%3C/svg%3E\")",
-              animation: allowWaveAnimation ? 'wave-slide 28s linear infinite reverse' : 'none',
             }}
           />
         )}

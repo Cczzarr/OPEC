@@ -19,10 +19,11 @@ import { ArrowUpRight } from 'lucide-react';
 import type { CSSProperties, MouseEvent, ReactElement } from 'react';
 import { CursorGlow } from '../components/layout/CursorGlow.tsx';
 import { Footer } from '../components/layout/Footer.tsx';
-import { Header } from '../components/layout/Header.tsx';
 import { ScrollProgress } from '../components/layout/ScrollProgress.tsx';
 import { Ripple } from '../components/ui/Ripple.tsx';
+import { useHydrated } from '../hooks/useHydrated.ts';
 import { usePageMeta } from '../hooks/usePageMeta.ts';
+import { ABOUT_PAGE_META } from '../seo/pageMeta.ts';
 
 type DeveloperCard = {
   name: string;
@@ -146,19 +147,18 @@ function renderDeveloperName(developer: DeveloperCard): ReactElement | string {
   );
 }
 
+function getWebpAvatarUrl(avatarUrl: string): string {
+  return avatarUrl.replace(/\.jpg$/i, '.webp');
+}
+
 export function About(): ReactElement {
-  usePageMeta({
-    title: 'О нас — ОПЭК',
-    description:
-      'Команда проекта ОПЭК: кто разрабатывает сервис расписания, роли участников и ссылки на официальные ресурсы.',
-    path: '/about',
-  });
+  usePageMeta(ABOUT_PAGE_META);
+  const isHydrated = useHydrated();
 
   return (
     <>
-      <ScrollProgress />
-      <CursorGlow />
-      <Header />
+      {isHydrated ? <ScrollProgress /> : null}
+      {isHydrated ? <CursorGlow /> : null}
 
       <main className="container mx-auto px-6 max-w-[1200px] relative z-10 pt-32">
         <section className="flex flex-col items-center text-center">
@@ -182,15 +182,18 @@ export function About(): ReactElement {
                 style={getDeveloperAvatarStyle(developer)}
               >
                 <div className="about-avatar-media">
-                  <img
-                    src={developer.avatarUrl}
-                    alt="ОПЭК"
-                    className="about-avatar-image"
-                    loading="lazy"
-                    decoding="async"
-                    width={92}
-                    height={92}
-                  />
+                  <picture>
+                    <source srcSet={getWebpAvatarUrl(developer.avatarUrl)} type="image/webp" />
+                    <img
+                      src={developer.avatarUrl}
+                      alt={developer.name}
+                      className="about-avatar-image"
+                      loading="lazy"
+                      decoding="async"
+                      width={92}
+                      height={92}
+                    />
+                  </picture>
                 </div>
               </div>
               <div className="about-tile-content">
@@ -247,9 +250,7 @@ export function About(): ReactElement {
           </div>
         </section>
 
-        <div className="mt-24">
-          <Footer />
-        </div>
+        <Footer />
       </main>
     </>
   );

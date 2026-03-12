@@ -14,38 +14,82 @@
  * in whole or in part, without explicit permission from the authors is prohibited.
  */
 
-import { useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
-export function ScrollToTop(): null {
-  const { pathname } = useLocation();
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+const INSTANT_SCROLL_CLASS = 'route-change-no-smooth';
 
-  useLayoutEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash) {
+function scrollToTop(behavior: ScrollBehavior): void {
+  const options: ScrollToOptions = { top: 0, left: 0, behavior };
+  window.scrollTo(options);
+  document.documentElement.scrollTo(options);
+  document.body.scrollTo(options);
+}
+
+function setInstantScrollMode(enabled: boolean): void {
+  document.documentElement.classList.toggle(INSTANT_SCROLL_CLASS, enabled);
+  document.body.classList.toggle(INSTANT_SCROLL_CLASS, enabled);
+}
+
+export function ScrollToTop(): null {
+  const { pathname, search, hash, state } = useLocation();
+  const previousLocationRef = useRef({ pathname, search, hash });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('scrollRestoration' in window.history)) {
       return;
     }
 
-    const root = document.documentElement;
-    const body = document.body;
-    const previousRootBehavior = root.style.scrollBehavior;
-    const previousBodyBehavior = body.style.scrollBehavior;
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
 
-    root.style.scrollBehavior = 'auto';
-    body.style.scrollBehavior = 'auto';
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
 
-    window.scrollTo(0, 0);
-    const frameId = window.requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      root.style.scrollBehavior = previousRootBehavior;
-      body.style.scrollBehavior = previousBodyBehavior;
+  useIsomorphicLayoutEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const previousLocation = previousLocationRef.current;
+    previousLocationRef.current = { pathname, search, hash };
+
+    const routeChanged =
+      previousLocation.pathname !== pathname || previousLocation.search !== search;
+
+    if (!routeChanged || hash) {
+      return;
+    }
+
+    const shouldPreserveScroll =
+      typeof state === 'object' &&
+      state !== null &&
+      'preserveScroll' in state &&
+      (state as { preserveScroll?: boolean }).preserveScroll === true;
+
+    if (shouldPreserveScroll) {
+      return;
+    }
+
+    setInstantScrollMode(true);
+    scrollToTop('auto');
+
+    let secondFrameId = 0;
+    const firstFrameId = window.requestAnimationFrame(() => {
+      secondFrameId = window.requestAnimationFrame(() => {
+        setInstantScrollMode(false);
+      });
     });
 
     return () => {
-      window.cancelAnimationFrame(frameId);
-      root.style.scrollBehavior = previousRootBehavior;
-      body.style.scrollBehavior = previousBodyBehavior;
+      window.cancelAnimationFrame(firstFrameId);
+      window.cancelAnimationFrame(secondFrameId);
+      setInstantScrollMode(false);
     };
-  }, [pathname]);
+  }, [pathname, search, hash]);
 
   return null;
 }

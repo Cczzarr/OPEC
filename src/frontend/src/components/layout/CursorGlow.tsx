@@ -14,35 +14,55 @@
  * in whole or in part, without explicit permission from the authors is prohibited.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { ReactElement } from 'react';
 
 type CursorGlowProps = {
   isEnabled?: boolean;
 };
 
+const POINTER_COARSE_QUERY = '(pointer: coarse)';
+
+function subscribePointerCoarse(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  const mediaQueryList = window.matchMedia(POINTER_COARSE_QUERY);
+
+  function handleChange(): void {
+    onStoreChange();
+  }
+
+  mediaQueryList.addEventListener('change', handleChange);
+  return () => mediaQueryList.removeEventListener('change', handleChange);
+}
+
+function getPointerCoarseSnapshot(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.matchMedia(POINTER_COARSE_QUERY).matches;
+}
+
+function getPointerCoarseServerSnapshot(): boolean {
+  return false;
+}
+
 export function CursorGlow({
   isEnabled = true,
 }: CursorGlowProps): ReactElement | null {
-  const [isTouchDevice, setIsTouchDevice] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(pointer: coarse)').matches : false
+  const isTouchDevice = useSyncExternalStore(
+    subscribePointerCoarse,
+    getPointerCoarseSnapshot,
+    getPointerCoarseServerSnapshot
   );
   const glowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!isEnabled || typeof window === 'undefined') {
+    if (!isEnabled || isTouchDevice || typeof window === 'undefined') {
       return;
-    }
-
-    const touchQuery = window.matchMedia('(pointer: coarse)');
-    function handlePointerChange(event: MediaQueryListEvent): void {
-      setIsTouchDevice(event.matches);
-    }
-
-    touchQuery.addEventListener('change', handlePointerChange);
-
-    if (isTouchDevice) {
-      return () => touchQuery.removeEventListener('change', handlePointerChange);
     }
 
     let targetX = window.innerWidth / 2;
@@ -71,7 +91,6 @@ export function CursorGlow({
     animate();
 
     return () => {
-      touchQuery.removeEventListener('change', handlePointerChange);
       window.removeEventListener('mousemove', onMouseMove);
       cancelAnimationFrame(rafId);
     };

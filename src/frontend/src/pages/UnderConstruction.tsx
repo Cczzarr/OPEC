@@ -58,9 +58,7 @@ export function UnderConstruction({ title }: UnderConstructionProps): ReactEleme
             Вернуться на главную
           </Link>
         </div>
-        <div className="mt-24">
-          <Footer />
-        </div>
+        <Footer />
       </main>
     </>
   );

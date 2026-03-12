@@ -217,7 +217,7 @@ npm-shrinkwrap.json
 poetry.lock
 uv.lock
 
-data/
+src/backend/data/
 
 *.db
 logs/

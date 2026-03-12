@@ -18,131 +18,28 @@ import clsx from 'clsx';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Loader2, Search, Sparkles, Zap } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import type { ComponentType, ReactElement, ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactElement } from 'react';
 
+import { API_BASE_URL } from './api/apiBaseUrl.ts';
+import { StatusPanel } from './components/status/StatusPanel.tsx';
+import { getStatusPreset } from './components/status/statusPresets.tsx';
+import { CursorGlow } from './components/layout/CursorGlow.tsx';
 import { Footer } from './components/layout/Footer.tsx';
-import { Header } from './components/layout/Header.tsx';
+import { ScrollProgress } from './components/layout/ScrollProgress.tsx';
 import { Calendar } from './components/schedule/Calendar.tsx';
 import { ScheduleCard } from './components/schedule/ScheduleCard.tsx';
+import { DemoModeBadge } from './components/status/DemoModeBadge.tsx';
+import { SyncLoadingIndicator } from './components/status/SyncLoadingIndicator.tsx';
+import { createDemoDaySchedule } from './data/demoData.ts';
+import { useHydrated } from './hooks/useHydrated.ts';
 import { usePageMeta } from './hooks/usePageMeta.ts';
+import { HOME_PAGE_META } from './seo/pageMeta.ts';
 import type { DayScheduleResponse, GroupSchedule } from './types/api.ts';
 
 type MotionModule = typeof import('framer-motion');
-type LazyComponent = Promise<{ default: ComponentType }>;
-
-type StatusPanelProps = {
-  icon: ReactNode;
-  iconWrapperClassName: string;
-  title: string;
-  message: string;
-  buttonLabel: string;
-};
-
-const MOCK_GROUPS: GroupSchedule[] = [
-  {
-    group: 'ИСП-221',
-    has_changes: true,
-    schedule: [
-      {
-        number: 1,
-        type: 'single',
-        subject: 'Основы алгоритмизации',
-        teacher: 'Иванов И.И.',
-        room: '301',
-        is_change: false,
-      },
-      {
-        number: 2,
-        type: 'subgroups',
-        sub1: {
-          subject: 'Иностранный язык',
-          teacher: 'Петрова А.С.',
-          room: '415',
-        },
-        sub2: null,
-        sub1_changed: true,
-        sub2_changed: false,
-        sub2_cancelled: true,
-        is_change: true,
-      },
-      {
-        number: 3,
-        type: 'single',
-        subject: 'Физическая культура',
-        teacher: 'Сидоров П.П.',
-        room: 'с/з',
-        is_change: false,
-      },
-      {
-        number: 4,
-        type: 'single',
-        subject: 'Математический анализ',
-        teacher: 'Козлов В.В.',
-        room: '210',
-        is_change: false,
-      },
-    ],
-  },
-  {
-    group: 'БД-221',
-    has_changes: false,
-    schedule: [
-      {
-        number: 1,
-        type: 'single',
-        subject: 'Архитектура БД',
-        teacher: 'Семёнов К.Л.',
-        room: '542',
-        is_change: false,
-      },
-      {
-        number: 2,
-        type: 'single',
-        subject: 'История России',
-        teacher: 'Морозова Т.А.',
-        room: '203',
-        is_change: false,
-      },
-      {
-        number: 3,
-        type: 'subgroups',
-        sub1: {
-          subject: 'Лаб. работа',
-          teacher: 'Панкрац Д.А.',
-          room: '544',
-        },
-        sub2: null,
-        is_change: false,
-      },
-    ],
-  },
-  {
-    group: 'ИСП-332',
-    has_changes: true,
-    schedule: [
-      { number: 1, type: 'cancelled', is_change: true },
-      {
-        number: 2,
-        type: 'single',
-        subject: 'Проектирование интерфейсов',
-        teacher: 'Тоцкая И.В.',
-        room: '226',
-        is_change: true,
-      },
-    ],
-  },
-];
 
 const DATE_FORMAT = 'yyyy-MM-dd';
-
-function getApiUrl(): string {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl && !envUrl.includes('localhost')) {
-    return envUrl;
-  }
-  return `http://${window.location.hostname}:8000/api/v1`;
-}
 
 function capitalizeFirst(text: string): string {
   if (!text) {
@@ -151,67 +48,16 @@ function capitalizeFirst(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function StatusPanel({
-  icon,
-  iconWrapperClassName,
-  title,
-  message,
-  buttonLabel,
-}: StatusPanelProps): ReactElement {
-  return (
-    <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div
-        className={clsx(
-          'w-24 h-24 mb-8 rounded-full flex items-center justify-center shadow-lg',
-          iconWrapperClassName
-        )}
-      >
-        {icon}
-      </div>
-      <h3 className="text-3xl font-black text-md-on-surface tracking-tight">{title}</h3>
-      <p className="text-md-on-surface-variant/70 mt-4 font-bold text-lg max-w-[400px] leading-relaxed">
-        {message}
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="mt-10 px-8 py-4 bg-md-surface border border-white/10 rounded-2xl font-black text-md-on-surface hover:bg-md-primary hover:text-md-bg transition-all active:scale-95"
-      >
-        {buttonLabel}
-      </button>
-    </div>
-  );
-}
-
-const API_BASE_URL = getApiUrl();
-
-function loadCursorGlow(): LazyComponent {
-  return import('./components/layout/CursorGlow.tsx').then((m) => ({
-    default: m.CursorGlow,
-  }));
-}
-
-function loadScrollProgress(): LazyComponent {
-  return import('./components/layout/ScrollProgress.tsx').then((m) => ({
-    default: m.ScrollProgress,
-  }));
-}
-
-const CursorGlow = lazy(loadCursorGlow);
-const ScrollProgress = lazy(loadScrollProgress);
-
 export default function App(): ReactElement {
-  usePageMeta({
-    title: 'ОПЭК — Расписание занятий',
-    description:
-      'Актуальное расписание занятий Омского промышленно-экономического колледжа ОПЭК: быстрый поиск по группам, преподавателям и предметам.',
-    path: '/',
-  });
+  usePageMeta(HOME_PAGE_META);
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const isHydrated = useHydrated();
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [previewDate, setPreviewDate] = useState<Date | null>(null);
-  const [changeDates] = useState<Set<string>>(new Set());
+  const [changeDates] = useState<Set<string>>(() => new Set());
   const [dayData, setDayData] = useState<DayScheduleResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [scheduleSwapAnimationEnabled, setScheduleSwapAnimationEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isOffline, setIsOffline] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -286,6 +132,11 @@ export default function App(): ReactElement {
   }, [prefersReducedMotion]);
 
   useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    let isActive = true;
     setLoading(true);
     resetFlags();
     const dateStr = format(selectedDate, DATE_FORMAT);
@@ -309,10 +160,18 @@ export default function App(): ReactElement {
         return Promise.all([res.json(), new Promise((resolve) => setTimeout(resolve, 300))]);
       })
       .then(([data]) => {
+        if (!isActive) {
+          return;
+        }
+
         setDayData(data);
         setLoading(false);
       })
       .catch((err) => {
+        if (!isActive) {
+          return;
+        }
+
         clearTimeout(timeoutId);
         if (err.message === '429' || err.message === 'API_ERROR') {
           setLoading(false);
@@ -326,17 +185,28 @@ export default function App(): ReactElement {
         }
 
         window.setTimeout(() => {
-          setDayData({
-            date: dateStr,
-            day_of_week: 1,
-            has_data: true,
-            groups: MOCK_GROUPS,
-          });
+          if (!isActive) {
+            return;
+          }
+
+          setDayData(createDemoDaySchedule(dateStr));
           setLoading(false);
           setIsOffline(true);
         }, 800);
       });
-  }, [selectedDate]);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [isHydrated, selectedDate]);
+
+  useEffect(() => {
+    if (!loading) {
+      setScheduleSwapAnimationEnabled(true);
+    }
+  }, [loading]);
 
   const filteredGroups = useMemo(() => {
     const groups = dayData?.groups || [];
@@ -377,7 +247,8 @@ export default function App(): ReactElement {
   );
   const isLightMotion = prefersReducedMotion || isTouchDevice;
   const isSearching = searchQuery.trim().length > 0;
-  const shouldUseLayoutTransitions = !isLightMotion && filteredGroups.length <= 16;
+  const shouldUseLayoutTransitions =
+    !isLightMotion && (isSearching || filteredGroups.length <= 16);
   const motion = motionModule?.motion;
   const AnimatePresence = motionModule?.AnimatePresence;
   const dateAnimation = {
@@ -411,7 +282,7 @@ export default function App(): ReactElement {
     );
   }
 
-  function renderEmptyState(animated: boolean): ReactElement {
+  function renderEmptyState(): ReactElement {
     const wrapperClassName = 'flex flex-col items-center justify-center py-40 text-center';
 
     const content = (
@@ -426,7 +297,7 @@ export default function App(): ReactElement {
       </>
     );
 
-    if (animated && motion) {
+    if (motion) {
       return (
         <motion.div
           key="empty"
@@ -448,13 +319,12 @@ export default function App(): ReactElement {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {filteredGroups.map((group) => (
-          <div key={group.group}>
-            <ScheduleCard
-              group={group.group}
-              hasChanges={group.has_changes}
-              schedule={group.schedule}
-            />
-          </div>
+          <ScheduleCard
+            key={group.group}
+            group={group.group}
+            hasChanges={group.has_changes}
+            schedule={group.schedule}
+          />
         ))}
       </div>
     );
@@ -531,7 +401,7 @@ export default function App(): ReactElement {
 
   function renderResultsGrid(): ReactElement {
     if (filteredGroups.length === 0) {
-      return renderEmptyState(Boolean(motion));
+      return renderEmptyState();
     }
 
     if (motion && AnimatePresence) {
@@ -542,70 +412,107 @@ export default function App(): ReactElement {
   }
 
   function renderScheduleBody(): ReactElement {
+    const hasScheduleSnapshot = dayData !== null;
+
     if (isRateLimited) {
-      return (
-        <StatusPanel
-          icon={<Zap className="w-10 h-10 animate-pulse" />}
-          iconWrapperClassName="bg-md-error/10 border border-md-error/20 text-md-error shadow-md-error/5"
-          title="Слишком много запросов"
-          message="Похоже, вы обновляете страницу слишком часто. Пожалуйста, подождите минуту перед следующей попыткой."
-          buttonLabel="Попробовать снова"
-        />
-      );
+      return <StatusPanel {...getStatusPreset('rate_limited')} />;
     }
 
     if (isTimeout) {
-      return (
-        <StatusPanel
-          icon={<Loader2 className="w-10 h-10 animate-spin-slow" />}
-          iconWrapperClassName="bg-md-tertiary/10 border border-md-tertiary/20 text-md-tertiary shadow-md-tertiary/5"
-          title="Ожидание истекло"
-          message="Время ожидания синхронизации истекло. Проверьте соединение и попробуйте еще раз."
-          buttonLabel="Повторить попытку"
-        />
-      );
+      return <StatusPanel {...getStatusPreset('timeout')} />;
     }
 
     if (isGeneralError) {
-      return (
-        <StatusPanel
-          icon={<Zap className="w-10 h-10 rotate-180" />}
-          iconWrapperClassName="bg-md-error/10 border border-md-error/20 text-md-error shadow-md-error/5"
-          title="Ошибка синхронизации"
-          message="Произошла ошибка при попытке синхронизации данных. Пожалуйста, обновите страницу."
-          buttonLabel="Обновить страницу"
-        />
-      );
+      return <StatusPanel {...getStatusPreset('sync_error')} />;
     }
 
     return (
-      <div
-        className={clsx('relative min-h-[400px]', loading ? 'overflow-hidden' : 'overflow-visible')}
-      >
+      <div className="relative min-h-[400px] md:min-h-[520px] overflow-visible">
         <div
           className={clsx(
-            'absolute inset-0 z-20 flex flex-col items-center justify-center py-40 gap-6 transition-all duration-300',
+            'absolute inset-x-0 top-0 z-30 flex min-h-[400px] md:min-h-[520px] flex-col items-center justify-center py-40 gap-6',
+            scheduleSwapAnimationEnabled && 'transition-all duration-300',
             loading
               ? 'opacity-100 translate-y-0 pointer-events-auto delay-150'
-              : 'opacity-0 translate-y-4 pointer-events-none'
+              : clsx(
+                  'opacity-0 pointer-events-none',
+                  scheduleSwapAnimationEnabled && 'translate-y-4'
+                )
           )}
         >
-          <Loader2 className="w-12 h-12 text-md-primary animate-spin" />
-          <span className="text-md-on-surface-variant font-bold animate-pulse text-lg">
-            Синхронизация данных...
-          </span>
+          <SyncLoadingIndicator />
         </div>
 
         <div
           className={clsx(
-            'transition-all duration-300 w-full',
+            'w-full relative',
+            scheduleSwapAnimationEnabled && 'transition-all duration-300',
             loading
-              ? 'opacity-0 -translate-y-4 pointer-events-none'
-              : 'opacity-100 translate-y-0 relative delay-150'
+              ? clsx(
+                  'opacity-0 pointer-events-none',
+                  scheduleSwapAnimationEnabled && '-translate-y-4'
+                )
+              : clsx('opacity-100', scheduleSwapAnimationEnabled && 'translate-y-0 delay-150')
           )}
-          style={{ position: loading ? 'absolute' : 'relative' }}
         >
-          {renderResultsGrid()}
+          {hasScheduleSnapshot ? renderResultsGrid() : null}
+        </div>
+      </div>
+    );
+  }
+
+  function renderCalendarPlaceholder(): ReactElement {
+    const placeholderWeekDays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+    const placeholderDays = Array.from({ length: 42 });
+
+    return (
+      <div className="bg-md-surface border border-white/5 rounded-[32px] p-4 sm:p-6 w-full max-w-[500px] shadow-2xl backdrop-blur-md overflow-hidden flex flex-col min-h-[420px] md:min-h-[520px]">
+        <div className="flex items-center justify-between mb-6">
+          <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/[0.02]" />
+          <div className="h-6 w-[160px] rounded-lg bg-white/[0.04]" />
+          <div className="w-10 h-10 rounded-xl border border-white/10 bg-white/[0.02]" />
+        </div>
+
+        <div className="grid grid-cols-7 mb-2">
+          {placeholderWeekDays.map((day) => (
+            <div
+              key={day}
+              className="text-center text-[10px] font-black text-md-on-surface-variant py-2"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="relative w-full mb-4 md:mb-6 flex-1 min-h-[280px] md:min-h-[380px]">
+          <div className="absolute inset-0 grid grid-cols-7 gap-1 content-start">
+            {placeholderDays.map((_, index) => (
+              <div
+                key={index}
+                className="aspect-square rounded-xl border border-white/5 bg-white/[0.02]"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSchedulePlaceholder(): ReactElement {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-[32px] border border-white/5 bg-md-surface px-6 py-8 shadow-[0_22px_40px_rgba(0,0,0,0.35)]"
+      >
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-5 h-5 text-md-primary animate-spin" />
+          <span className="sr-only">Загрузка расписания...</span>
+          <div className="h-5 w-48 rounded-lg bg-white/[0.04] animate-pulse" />
+        </div>
+        <div className="mt-6 grid gap-3">
+          <div className="h-4 w-full max-w-[720px] rounded bg-white/[0.03] animate-pulse" />
+          <div className="h-4 w-full max-w-[640px] rounded bg-white/[0.03] animate-pulse" />
         </div>
       </div>
     );
@@ -613,32 +520,29 @@ export default function App(): ReactElement {
 
   return (
     <>
-      <Suspense fallback={null}>
-        <CursorGlow />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ScrollProgress />
-      </Suspense>
-      <Header />
+      {isHydrated ? <CursorGlow /> : null}
+      {isHydrated ? <ScrollProgress /> : null}
 
       <main className="container mx-auto px-6 max-w-[1240px] relative z-10">
         <section className="min-h-screen flex flex-col md:flex-row items-center justify-between gap-16 pt-[140px] md:pt-[120px] pb-20">
           <div className="flex-1 min-w-[300px] max-w-[650px] flex flex-col md:items-start items-center text-center md:text-left">
             <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-8">
               <div className="inline-flex items-center gap-2 px-5 py-2 bg-md-primary/5 border border-md-primary/15 rounded-full font-bold text-[0.85rem] text-md-primary backdrop-blur-md transition-all duration-500 hover:bg-md-primary/10">
-                <Sparkles className="w-3.5 h-3.5 fill-md-primary/20" /> Always Up-to-Date
+                <Sparkles className="w-3.5 h-3.5 fill-md-primary/20" /> Поиск по группам
               </div>
               <div className="inline-flex items-center gap-2 px-5 py-2 bg-md-primary/5 border border-md-primary/15 rounded-full font-bold text-[0.85rem] text-md-primary backdrop-blur-md transition-all duration-500 hover:bg-md-primary/10">
-                <Zap className="w-3.5 h-3.5 fill-md-primary/20" /> 24/7 Stability
+                <Zap className="w-3.5 h-3.5 fill-md-primary/20" /> Поиск по преподавателям
               </div>
             </div>
 
             <h1 className="text-[clamp(3.5rem,8vw,6.5rem)] leading-[1.0] font-extrabold tracking-[-0.05em] mb-6 text-md-on-surface">
-              ОПЭК
+              <span className="sr-only">Расписание занятий ОПЭК</span>
+              <span aria-hidden="true">ОПЭК</span>
             </h1>
 
             <p className="text-[clamp(1.1rem,2vw,1.3rem)] text-md-on-surface-variant mb-12 leading-[1.6] max-w-[500px]">
-              Расписание занятий с актуальными изменениями секунда в секунду для студентов и преподавателей.
+              Удобное расписание занятий с актуальными изменениями секунда в секунду для студентов и
+              преподавателей.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mt-6">
@@ -667,13 +571,17 @@ export default function App(): ReactElement {
             </div>
           </div>
 
-          <div className="flex-1 flex justify-center items-center min-w-[300px]">
-            <Calendar
-              selectedDate={selectedDate}
-              onChange={setSelectedDate}
-              onSelectionStart={handleDateSelectionStart}
-              changeDates={changeDates}
-            />
+          <div className="flex-1 flex justify-center items-center min-w-[300px] min-h-[420px] md:min-h-[520px]">
+            {isHydrated ? (
+              <Calendar
+                selectedDate={selectedDate}
+                onChange={setSelectedDate}
+                onSelectionStart={handleDateSelectionStart}
+                changeDates={changeDates}
+              />
+            ) : (
+              renderCalendarPlaceholder()
+            )}
           </div>
         </section>
 
@@ -684,35 +592,31 @@ export default function App(): ReactElement {
                 <h2 className="text-[clamp(2.5rem,5vw,4.5rem)] font-black tracking-[-0.04em] text-md-on-surface leading-none">
                   Расписание
                 </h2>
-                {isOffline && (
-                  <div className="group relative">
-                    <div className="px-3 py-1 bg-md-tertiary/10 border border-md-tertiary/20 rounded-full text-md-tertiary text-[10px] font-black uppercase tracking-widest animate-pulse cursor-help">
-                      Demo Mode
-                    </div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-3 bg-md-surface/95 backdrop-blur-xl border border-white/10 rounded-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-50 shadow-2xl shadow-black/50">
-                      <p className="text-sm text-md-on-surface-variant leading-relaxed text-center font-medium">
-                        Сервис временно недоступен. Показаны примеры данных для демонстрации интерфейса.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                {isOffline ? <DemoModeBadge /> : null}
               </div>
-              {renderDateLabel()}
+              {isHydrated ? renderDateLabel() : null}
             </div>
 
-            <div className="relative w-full max-w-[400px]">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-md-on-surface-variant/40" />
-              <input
-                type="text"
-                placeholder="Группа, предмет, преподаватель..."
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="w-full h-16 bg-md-surface border border-white/5 rounded-2xl pl-14 pr-6 text-md-on-surface font-bold placeholder:text-md-on-surface-variant/30 focus:border-md-primary/40 focus:ring-4 focus:ring-md-primary/5 transition-all outline-none"
-              />
-            </div>
+            {isHydrated ? (
+              <div className="relative w-full max-w-[400px]">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-md-on-surface-variant/40" />
+                <input
+                  type="text"
+                  placeholder="Группа, предмет, преподаватель..."
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="w-full h-16 bg-md-surface border border-white/5 rounded-2xl pl-14 pr-6 text-md-on-surface font-bold placeholder:text-md-on-surface-variant/30 focus:border-md-primary/40 focus:ring-4 focus:ring-md-primary/5 transition-all outline-none"
+                />
+              </div>
+            ) : (
+              <div className="w-full max-w-[400px]">
+                <div className="h-16 rounded-2xl border border-white/5 bg-white/[0.02] animate-pulse" />
+                <span className="sr-only">Загрузка поиска...</span>
+              </div>
+            )}
           </div>
 
-          {renderScheduleBody()}
+          {isHydrated ? renderScheduleBody() : renderSchedulePlaceholder()}
         </section>
 
         <Footer />

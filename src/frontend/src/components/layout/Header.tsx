@@ -105,12 +105,18 @@ export function Header(): ReactElement {
           className="group relative overflow-hidden flex items-center gap-3 font-extrabold text-[1.2rem] text-md-on-surface no-underline rounded-full pr-4 pl-1 py-1 transition-colors duration-400 hover:bg-white/5"
         >
           <Ripple />
-          <img
-            src="/tab_logo_84.png"
-            alt="ОПЭК"
-            className="w-[42px] h-[42px] object-cover rounded-full logo-hover-effect"
-            style={{ borderRadius: '50%' }}
-          />
+          <picture className="w-[42px] h-[42px] rounded-full overflow-hidden logo-hover-effect">
+            <source srcSet="/tab_logo_84.webp" type="image/webp" />
+            <img
+              src="/tab_logo_84.png"
+              alt="ОПЭК logo"
+              aria-hidden="true"
+              width={42}
+              height={42}
+              className="w-full h-full object-cover rounded-full"
+              style={{ borderRadius: '50%' }}
+            />
+          </picture>
           <span className="relative z-10">ОПЭК</span>
         </Link>
 
@@ -121,6 +127,9 @@ export function Header(): ReactElement {
 
         <button
           onClick={toggleMenu}
+          aria-label={mobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-nav-panel"
           className="relative overflow-hidden md:hidden flex flex-col items-center justify-center gap-[5px] w-12 h-12 rounded-full hover:bg-white/10 transition-colors mr-1"
         >
           <Ripple />
@@ -146,6 +155,7 @@ export function Header(): ReactElement {
       </header>
 
       <div
+        id="mobile-nav-panel"
         className={clsx(
           'fixed inset-0 bg-md-bg/95 backdrop-blur-2xl z-[90] flex flex-col items-center justify-center gap-6 transition-all duration-500 ease-spring',
           mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
