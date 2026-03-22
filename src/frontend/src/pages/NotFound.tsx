@@ -15,27 +15,22 @@
  */
 
 import type { ReactElement } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CursorGlow } from '../components/layout/CursorGlow.tsx';
 import { Footer } from '../components/layout/Footer.tsx';
-import { Header } from '../components/layout/Header.tsx';
 import { ScrollProgress } from '../components/layout/ScrollProgress.tsx';
 import { usePageMeta } from '../hooks/usePageMeta.ts';
+import { getNotFoundPageMeta } from '../seo/pageMeta.ts';
 
 export function NotFound(): ReactElement {
-  const currentPath = window.location.pathname;
-  usePageMeta({
-    title: `ОПЭК — 404 — ${currentPath}`,
-    description:
-      `Страница ${currentPath} не найдена. Здесь абсолютно ничего нет, кроме этого текста.`,
-    path: currentPath,
-    robots: 'noindex, nofollow',
-  });
+  const location = useLocation();
+  const currentPath = location.pathname;
+  usePageMeta(getNotFoundPageMeta(currentPath));
 
   return (
     <>
       <ScrollProgress />
       <CursorGlow />
-      <Header />
 
       <main className="container mx-auto px-6 max-w-[1240px] relative z-10 min-h-[100dvh] flex flex-col pt-[calc(env(safe-area-inset-top)+6.5rem)] md:pt-32">
         <div className="flex-1 flex flex-col items-center justify-center text-center mb-[56px] mt-20 md:mt-24">
@@ -49,9 +44,7 @@ export function NotFound(): ReactElement {
             Здесь абсолютно ничего нет, кроме этого текста.
           </p>
         </div>
-        <div className="mt-24">
-          <Footer />
-        </div>
+        <Footer />
       </main>
     </>
   );

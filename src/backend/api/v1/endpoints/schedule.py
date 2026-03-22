@@ -472,7 +472,7 @@ async def get_teacher_day_schedule_all(
 
 @router.get(
     "/teacher/{teacher_name}",
-    dependencies=[Depends(_safe_rate_limiter(times=20, seconds=60))],
+    dependencies=[Depends(_safe_rate_limiter(times=30, seconds=60))],
 )
 async def get_teacher_schedule(
     teacher_name: str,

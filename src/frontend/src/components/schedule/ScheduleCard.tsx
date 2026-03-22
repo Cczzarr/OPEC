@@ -109,6 +109,29 @@ export function ScheduleCard({ group, hasChanges, schedule }: ScheduleCardProps)
   );
 }
 
+export function ScheduleCardSkeleton(): ReactElement {
+  return (
+    <div className="relative bg-md-surface border border-white/5 rounded-[32px] p-8 flex flex-col h-full min-h-[420px] shadow-[0_22px_40px_rgba(0,0,0,0.35)] overflow-hidden">
+      <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
+        <div className="h-7 w-24 rounded-lg bg-white/[0.08] animate-pulse" />
+        <div className="h-6 w-16 rounded-full bg-white/[0.06] animate-pulse" />
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="flex gap-4 p-4 rounded-2xl bg-white/[0.02]">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.08] shrink-0 animate-pulse" />
+            <div className="grow min-w-0 space-y-2">
+              <div className="h-4 w-4/5 rounded bg-white/[0.08] animate-pulse" />
+              <div className="h-3 w-2/3 rounded bg-white/[0.06] animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function renderLessonContent(lesson: Lesson): ReactElement {
   switch (lesson.type) {
     case 'cancelled':

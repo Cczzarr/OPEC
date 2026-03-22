@@ -29,8 +29,8 @@ import {
 } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ReactElement } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 
 type MotionModule = typeof import('framer-motion');
 
@@ -53,29 +53,15 @@ type CalendarProps = {
   changeDates: Set<string>;
 };
 
-type CalendarHeights = Record<4 | 5 | 6, number>;
-const CALENDAR_DAY_GAP_PX = 4;
 const COMMIT_DELAY_MS = 420;
+const CALENDAR_GRID_GAP_PX = 4;
 const WEEK_DAYS = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
-
-const MOBILE_HEIGHTS: CalendarHeights = { 4: 200, 5: 240, 6: 280 };
-const DESKTOP_HEIGHTS: CalendarHeights = { 4: 260, 5: 320, 6: 380 };
 
 type MotionVariants = {
   enter: (direction: number) => { x: number; opacity: number; filter: string };
   center: { x: number; opacity: number; filter: string };
   exit: (direction: number) => { x: number; opacity: number; filter: string };
 };
-
-function getGridHeight(numWeeks: number, heights: CalendarHeights): number {
-  if (numWeeks === 6) {
-    return heights[6];
-  }
-  if (numWeeks === 5) {
-    return heights[5];
-  }
-  return heights[4];
-}
 
 function renderSelectedBlob(
   isSelected: boolean,
@@ -87,8 +73,9 @@ function renderSelectedBlob(
   }
 
   const motion = motionModule?.motion;
-  const blobClasses = clsx(
-    'absolute inset-0 z-0 flex items-center justify-center',
+  const blobClasses = 'absolute inset-0 z-0 flex items-center justify-center';
+  const blobScaleClasses = clsx(
+    'w-full h-full',
     isTouchDevice ? 'scale-[1.04]' : 'scale-110'
   );
   const innerBlobClasses = clsx(
@@ -99,24 +86,30 @@ function renderSelectedBlob(
   if (!motion) {
     return (
       <div className={blobClasses}>
-        <div className={innerBlobClasses} />
+        <div className={blobScaleClasses}>
+          <div className={innerBlobClasses} />
+        </div>
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={false}
-      layoutId="selected-blob"
-      transition={
-        isTouchDevice
-          ? { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
-          : { type: 'spring', stiffness: 260, damping: 26, mass: 0.9 }
-      }
-      className={blobClasses}
-    >
-      <div className={innerBlobClasses} />
-    </motion.div>
+    <div className={blobClasses}>
+      <div className={blobScaleClasses}>
+        <motion.div
+          initial={false}
+          layoutId="selected-blob"
+          transition={
+            isTouchDevice
+              ? { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
+              : { type: 'spring', stiffness: 260, damping: 26, mass: 0.9 }
+          }
+          className="w-full h-full"
+        >
+          <div className={innerBlobClasses} />
+        </motion.div>
+      </div>
+    </div>
   );
 }
 
@@ -252,9 +245,12 @@ export function Calendar({
     typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false
   );
   const [motionModule, setMotionModule] = useState<MotionModule | null>(null);
-  const [calendarGridWidth, setCalendarGridWidth] = useState(0);
+  const today = useMemo(() => {
+    const initialToday = new Date();
+    initialToday.setHours(0, 0, 0, 0);
+    return initialToday;
+  }, []);
   const commitTimeoutRef = useRef<number | null>(null);
-  const weekHeaderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setVisualSelectedDate(selectedDate);
@@ -301,56 +297,12 @@ export function Calendar({
     };
   }, [prefersReducedMotion]);
 
-  useLayoutEffect(() => {
-    const header = weekHeaderRef.current;
-    if (!header) {
-      return;
-    }
-
-    function updateGridWidth(): void {
-      const currentHeader = weekHeaderRef.current;
-      if (!currentHeader) {
-        return;
-      }
-
-      setCalendarGridWidth(currentHeader.getBoundingClientRect().width);
-    }
-
-    updateGridWidth();
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(updateGridWidth);
-      observer.observe(header);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener('resize', updateGridWidth, { passive: true });
-    return () => window.removeEventListener('resize', updateGridWidth);
-  }, []);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 1 });
     const end = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
   }, [viewDate]);
-
   const numWeeks = days.length / 7;
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-
-  const heights = isMobile ? MOBILE_HEIGHTS : DESKTOP_HEIGHTS;
-  const fallbackGridHeight = getGridHeight(numWeeks, heights);
-  const gridHeight = useMemo(() => {
-    if (calendarGridWidth <= 0) {
-      return fallbackGridHeight;
-    }
-
-    const dayWidth = (calendarGridWidth - CALENDAR_DAY_GAP_PX * 6) / 7;
-    const height = dayWidth * numWeeks + CALENDAR_DAY_GAP_PX * (numWeeks - 1);
-    return Math.round(height);
-  }, [calendarGridWidth, fallbackGridHeight, numWeeks]);
 
   const useCalendarPopLayout = !isTouchDevice && !prefersReducedMotion;
   const motion = motionModule?.motion;
@@ -403,6 +355,11 @@ export function Calendar({
     );
   });
 
+  const calendarHeightStyle = {
+    '--calendar-weeks': `${numWeeks}`,
+    height: `calc(((100cqi - ${CALENDAR_GRID_GAP_PX * 6}px) / 7) * var(--calendar-weeks) + ${CALENDAR_GRID_GAP_PX}px * (var(--calendar-weeks) - 1))`,
+  } as CSSProperties;
+
   return (
     <div className="bg-md-surface border border-white/5 rounded-[32px] p-4 sm:p-6 w-full max-w-[500px] shadow-2xl backdrop-blur-md overflow-hidden flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -415,12 +372,16 @@ export function Calendar({
 
         <div className="relative w-full h-6 flex justify-center items-center overflow-hidden">
           {motion && AnimatePresence ? (
-            <AnimatePresence mode={useCalendarPopLayout ? 'popLayout' : 'sync'} custom={direction}>
+            <AnimatePresence
+              mode={useCalendarPopLayout ? 'popLayout' : 'sync'}
+              custom={direction}
+              initial={false}
+            >
               <motion.h3
                 key={viewDate.toString()}
                 custom={direction}
                 variants={variants}
-                initial="enter"
+                initial={direction === 0 ? false : 'enter'}
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
@@ -444,7 +405,7 @@ export function Calendar({
         </button>
       </div>
 
-      <div ref={weekHeaderRef} className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 mb-2">
         {WEEK_DAYS.map((day) => (
           <div
             key={day}
@@ -455,38 +416,43 @@ export function Calendar({
         ))}
       </div>
 
-      {motion && AnimatePresence ? (
-        <motion.div
-          animate={{ height: gridHeight }}
-          transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-          className="relative w-full overflow-visible mb-4 md:mb-6"
-        >
-          <AnimatePresence
-            mode={useCalendarPopLayout ? 'popLayout' : 'sync'}
-            custom={direction}
+      <div
+        className="relative w-full overflow-visible mb-4 md:mb-6 [container-type:inline-size]"
+        style={{ paddingBottom: 'clamp(6px, 2vw, 16px)' }}
+      >
+        {motion && AnimatePresence ? (
+          <motion.div
             initial={false}
+            animate={{ ['--calendar-weeks' as const]: numWeeks } as { '--calendar-weeks': number }}
+            transition={{ duration: 0.42, ease: [0.2, 0, 0, 1] }}
+            className="relative w-full overflow-visible"
+            style={calendarHeightStyle}
           >
-            <motion.div
-              key={viewDate.toString()}
+            <AnimatePresence
+              mode={useCalendarPopLayout ? 'popLayout' : 'sync'}
               custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-              className="absolute inset-0 grid grid-cols-7 gap-1 content-start"
+              initial={false}
             >
-              {dayNodes}
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-      ) : (
-        <div className="relative w-full overflow-visible mb-4 md:mb-6" style={{ height: gridHeight }}>
-          <div className="absolute inset-0 grid grid-cols-7 gap-1 content-start">
-            {dayNodes}
+              <motion.div
+                key={viewDate.toString()}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
+                className="absolute inset-0 grid grid-cols-7 gap-1 content-start"
+              >
+                {dayNodes}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        ) : (
+          <div className="relative w-full overflow-visible" style={calendarHeightStyle}>
+            <div className="absolute inset-0 grid grid-cols-7 gap-1 content-start">{dayNodes}</div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

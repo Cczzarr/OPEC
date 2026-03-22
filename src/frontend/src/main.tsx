@@ -14,58 +14,78 @@
  * in whole or in part, without explicit permission from the authors is prohibited.
  */
 
-import { lazy, StrictMode, Suspense } from 'react';
-import type { ComponentType } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { StrictMode } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
-import { BackgroundBlobs } from './components/layout/BackgroundBlobs.tsx';
-import { ScrollToTop } from './components/layout/ScrollToTop.tsx';
+import { AppShell } from './app/AppShell.tsx';
+import { PageMetaProvider } from './seo/pageMetaStore.tsx';
+import { SsgPayloadContext } from './ssg/SsgPayloadContext.tsx';
 
-type NoProps = Record<string, never>;
-type LazyComponent<Props = NoProps> = Promise<{ default: ComponentType<Props> }>;
-type UnderConstructionProps = { title: string };
-
-function loadApp(): LazyComponent {
-  return import('./App.tsx');
+declare global {
+  interface Window {
+    __SSG_TEACHERS__?: unknown;
+  }
 }
 
-function loadUnderConstruction(): LazyComponent<UnderConstructionProps> {
-  return import('./pages/UnderConstruction.tsx').then((m) => ({
-    default: m.UnderConstruction,
-  }));
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('Root element not found.');
 }
 
-function loadAbout(): LazyComponent {
-  return import('./pages/About.tsx').then((m) => ({
-    default: m.About,
-  }));
-}
-
-function loadNotFound(): LazyComponent {
-  return import('./pages/NotFound.tsx').then((m) => ({
-    default: m.NotFound,
-  }));
-}
-
-const App = lazy(loadApp);
-const UnderConstruction = lazy(loadUnderConstruction);
-const About = lazy(loadAbout);
-const NotFound = lazy(loadNotFound);
-
-createRoot(document.getElementById('root')!).render(
+const app = (
   <StrictMode>
-    <BrowserRouter>
-      <BackgroundBlobs />
-      <ScrollToTop />
-      <Suspense fallback={null}>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/teachers" element={<UnderConstruction title="Преподаватели" />} />
-          <Route path="/about" element={<About />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
-  </StrictMode>,
+    <PageMetaProvider>
+      <SsgPayloadContext.Provider
+        value={{
+          teachers: Array.isArray(window.__SSG_TEACHERS__)
+            ? window.__SSG_TEACHERS__.filter((value): value is string => typeof value === 'string')
+            : [],
+        }}
+      >
+        <BrowserRouter>
+          <AppShell enableScrollToTop />
+        </BrowserRouter>
+      </SsgPayloadContext.Provider>
+    </PageMetaProvider>
+  </StrictMode>
 );
+
+function normalizePathname(pathname: string): string {
+  if (!pathname) {
+    return '/';
+  }
+
+  const normalized = pathname.replace(/\/+$/, '');
+  return normalized.length > 0 ? normalized : '/';
+}
+
+function getCanonicalPathname(): string | null {
+  const canonicalLink = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  const canonicalHref = canonicalLink?.getAttribute('href');
+  if (!canonicalHref) {
+    return null;
+  }
+
+  try {
+    const canonicalUrl = new URL(canonicalHref, window.location.origin);
+    return normalizePathname(canonicalUrl.pathname);
+  } catch {
+    return null;
+  }
+}
+
+const hasServerMarkup = rootElement.hasChildNodes();
+const currentPathname = normalizePathname(window.location.pathname);
+const canonicalPathname = getCanonicalPathname();
+const canHydrate = hasServerMarkup && canonicalPathname === currentPathname;
+
+if (canHydrate) {
+  hydrateRoot(rootElement, app);
+} else {
+  if (hasServerMarkup) {
+    rootElement.innerHTML = '';
+  }
+  createRoot(rootElement).render(app);
+}
